@@ -1,4 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
+# -*- coding: iso-8859-15 -*-
+
 #
 #### Python 2 code - dont use Python 3! #######
 ##### I will update this to Python 3 shortly ########
@@ -27,12 +29,13 @@
 import os
 import sys
 import time
-import serial
+#import serial
 import ctypes
 #
 from pymodbus.client.sync import ModbusSerialClient as ModbusClient
 from pymodbus.mei_message import *      # ReadDeviceInformationRequest()
 from pyepsolartracer.registers import registers,coils
+import serial.rs485
 #
 DEBUG=0
 
@@ -63,16 +66,20 @@ log.setLevel(logging.INFO) # DEBUG or INFO
 client = ModbusClient(  method = 'rtu',
                         port = '/dev/ttyXRUSB0',
                         baudrate = 115200,
-                        stopbits = serial.STOPBITS_ONE,
-                        parity=serial.PARITY_NONE,
+#                        stopbits = serial.STOPBITS_ONE,
+                        stopbits = 1,
+#                        parity=serial.PARITY_NONE,
+                        parity = 'N',
                         bytesize = 8,
-                        timeout=2)
-
+                        timeout=1)
+print ("trying connection")
 connection = client.connect()
+rs485_mode = serial.rs485.RS485Settings(delay_before_tx = 0, delay_before_rx = 0, rts_level_for_tx=True, rts_level_for_rx=False, loopback=False)
+
 if (connection == 1):
-        if (DEBUG): print "connection:", connection
+        if (DEBUG): print ("connection:"), connection
 else:
-        print "connection: trying insmod"
+        print ("connection: trying insmod")
         cmd = "/sbin/insmod /home/solar/xr_usb_serial_common-1a/xr_usb_serial_common.ko"
 
         returned_value = os.system(cmd)  # returns the exit code in unix
@@ -86,7 +93,7 @@ else:
 request = ReadDeviceInformationRequest(unit=1)
 response = client.execute(request)
 # print "Response:"
-print repr(response.information), "\n"
+print (repr(response.information), "\n")
 
 ####################################
 
@@ -108,17 +115,17 @@ if (result.registers):
         if (batteryChargePowerH != 0):
                 batteryChargePowerL += 640
 
-        print "0x3100: pvVoltage:",             pvVoltage,      "v"
-        print "0x3101: pvCurrent:",             pvCurrent,      "a"
-        print "0x3102: pvPowerL:",              pvPowerL,       "w"
+        print ("0x3100: pvVoltage:",             pvVoltage,      "v")
+        print ("0x3101: pvCurrent:",             pvCurrent,      "a")
+        print ("0x3102: pvPowerL:",              pvPowerL,       "w")
         #print "0x3103: pvPowerH:",             pvPowerH,       "v"
-        print "0x3104: batteryChargeV:",        batteryChargeV, "v"
-        print "0x3105: batteryChargeC:",        batteryChargeC, "a"
-        print "0x3106: batteryChargePowerL:",   batteryChargePowerL, "w"
+        print ("0x3104: batteryChargeV:",        batteryChargeV, "v")
+        print ("0x3105: batteryChargeC:",        batteryChargeC, "a")
+        print ("0x3106: batteryChargePowerL:",   batteryChargePowerL, "w")
         #print "0x3107: batteryChargePowerH:",  batteryChargePowerH, "v"
 
 else:
-        print "No data for 0x3100!"
+        print ("No data for 0x3100!")
 
 ####################################
 
@@ -136,15 +143,15 @@ if (result.registers):
         if (loadPowerH != 0):
                 loadPowerL += 640
 
-        print "0x310C: loadVoltage:",           loadVoltage,    "v"
-        print "0x310D: loadCurrent:",           loadCurrent,    "a"
-        print "0x310E: loadPowerL:",            loadPowerL,     "w"
+        print ("0x310C: loadVoltage:",           loadVoltage,    "v")
+        print ("0x310D: loadCurrent:",           loadCurrent,    "a")
+        print ("0x310E: loadPowerL:",            loadPowerL,     "w")
         #print "0x310F: loadPowerH:",           loadPowerH,     "w"
-        print "0x3110: batteryTemp:",           batteryTemp,    "c", ((1.8*batteryTemp)+32), "f"
-        print "0x3111: deviceTemp:",            deviceTemp,     "c", ((1.8*deviceTemp)+32), "f"
+        print ("0x3110: batteryTemp:",           batteryTemp,    "c", ((1.8*batteryTemp)+32), "f")
+        print ("0x3111: deviceTemp:",            deviceTemp,     "c", ((1.8*deviceTemp)+32), "f")
         #print "0x3112: compTemp:",             compTemp  ,     "v"
 else:
-        print "No data for 0x3100!"
+        print ("No data for 0x3100!")
 
 result = client.read_input_registers(0x311A, 2, unit=1)
 #print "Result 0x311A:", result
@@ -152,10 +159,10 @@ if (result.registers):
         batSOC                  = float(result.registers[0])
         remoteBatTemp           = result.registers[1]
 
-        print "0x311A: Battery S.O.C:",         batSOC, "%"
+        print ("0x311A: Battery S.O.C:",         batSOC, "%")
         #print "0x311B: remoteBatTemp:",        remoteBatTemp, "c"
 else:
-        print "No data for 0x311A!"
+        print ("No data for 0x311A!")
 
 ####################################
 
@@ -176,16 +183,16 @@ if (result.registers):
         if (genEnergyTodayH != 0):
                 genEnergyTodayL += 640
 
-        print "0x3300: pvMaxInVolts:",          float(pvMaxInVolts) / 100,      "v"
-        print "0x3301: pvMinInVolts:",          float(pvMinInVolts) / 100,      "v"
-        print "0x3302: batMaxVolts:",           float(batMaxVolts) / 100,       "v"
-        print "0x3303: batMinVolts:",           float(batMinVolts) / 100,       "v"
-        print "0x3304: consumedEnergyTodayL:",  consumedEnergyTodayL * 10,      "w/h"
+        print ("0x3300: pvMaxInVolts:",          float(pvMaxInVolts) / 100,      "v")
+        print ("0x3301: pvMinInVolts:",          float(pvMinInVolts) / 100,      "v")
+        print ("0x3302: batMaxVolts:",           float(batMaxVolts) / 100,       "v")
+        print ("0x3303: batMinVolts:",           float(batMinVolts) / 100,       "v")
+        print ("0x3304: consumedEnergyTodayL:",  consumedEnergyTodayL * 10,      "w/h")
         #print "0x3305: consumedEnergyTodayH:", consumedEnergyTodayH,           "w"
-        print "0x330C: genEnergyTodayL:",       genEnergyTodayL * 10,           "w/h"
+        print ("0x330C: genEnergyTodayL:",       genEnergyTodayL * 10,           "w/h")
         #print "0x330D: genEnergyTodayH:",      genEnergyTodayH,                "w"
 else:
-        print "No data for 0x3200!"
+        print ("No data for 0x3200!")
 
 ####################################
 
@@ -198,13 +205,13 @@ if (result.registers):
 # Battery status bit pattern 0x3200
 # D3-D0: 01H Overvolt , 00H Normal , 02H Under Volt, 03H Low Volt Disconnect, 04H Fault
 # D7-D4: 00H Normal, 01H Over Temp.(Higher than the warning settings), 02H Low Temp.( Lower than the
- warning settings),
+# warning settings),
 # D8: Battery inerternal resistance abnormal 1, normal 0
 # D15: 1-Wrong identification for rated voltage
 #
 # Inverter status bit pattern 0x3201
 # D15-D14: Input volt status. 00 normal, 01 no power connected, 02H Higher volt input, 03H Input vol
-t error.
+# t error.
 # D13: Charging MOSFET is short.
 # D12: Charging or Anti-reverse MOSFET is short.
 # D11: Anti-reverse MOSFET is short.
@@ -218,8 +225,8 @@ t error.
 # D0: 1 Running, 0 Standby.
 
 
-        print "0x3200: batteryStatus:",         format(batteryStatus, 'b').zfill(16), "bits"
-        print "0x3201: equipStatus:",           format(equipStatus, 'b').zfill(16), "bits"
+        print ("0x3200: batteryStatus:",         format(batteryStatus, 'b').zfill(16), "bits")
+        print ("0x3201: equipStatus:",           format(equipStatus, 'b').zfill(16), "bits")
 
         flags.asByte = equipStatus
 
@@ -234,13 +241,13 @@ t error.
         else:
                 chargeStatusStr = "Error"
 
-        print "runningOk: %i"    % flags.bit.runningOk
-        print "fault: %i"        % flags.bit.fault
-        print "chargeStatus: %i" % flags.bit.chargeStatus, chargeStatusStr
-        print "pvError: %i"      % flags.bit.pvError
+        print ("runningOk: %i"    % flags.bit.runningOk)
+        print ("fault: %i"        % flags.bit.fault)
+        print ("chargeStatus: %i" % flags.bit.chargeStatus, chargeStatusStr)
+        print ("pvError: %i"      % flags.bit.pvError)
 
 else:
-        print "No data for 0x3200!"
+        print ("No data for 0x3200!")
 
 ###################################################################
 
@@ -263,23 +270,23 @@ if (result.registers):
         loVDiscon       = result.registers[13]
         dischargeLimitV = result.registers[14]
 
-        print "0x9000: batType:",               batType
-        print "0x9001: batCap:",                batCap,                         "ah"
-        print "0x9002: batComp:",               batComp
-        print "0x9003: hiVDiscon:",             float(hiVDiscon) / 100,         "v"
-        print "0x9004: chargeLimitV:",          float(chargeLimitV) / 100,      "v"
-        print "0x9005: overVRecon:",            float(overVRecon) / 100,        "v"
-        print "0x9006: eqVolts:",               float(eqVolts) / 100,   "v"
-        print "0x9007: boostV:",                float(boostV) / 100,    "v"
-        print "0x9008: floatV:",                float(floatV) / 100,    "v"
-        print "0x9009: boostReconV:",           float(boostReconV) / 100,       "v"
-        print "0x900A: loVRecon:",              float(loVRecon) / 100,  "v"
-        print "0x900B: underVRecover:",         float(underVRecover) / 100,     "v"
-        print "0x900C: underVWarn:",            float(underVWarn) / 100,        "v"
-        print "0x90OD: loVDiscon:",             float(loVDiscon) / 100, "v"
-        print "0x900E: dischargeLimitV:",       float(dischargeLimitV) / 100,   "v"
+        print ("0x9000: batType:",               batType)
+        print ("0x9001: batCap:",                batCap,                         "ah")
+        print ("0x9002: batComp:",               batComp)
+        print ("0x9003: hiVDiscon:",             float(hiVDiscon) / 100,         "v")
+        print ("0x9004: chargeLimitV:",          float(chargeLimitV) / 100,      "v")
+        print ("0x9005: overVRecon:",            float(overVRecon) / 100,        "v")
+        print ("0x9006: eqVolts:",               float(eqVolts) / 100,   "v")
+        print ("0x9007: boostV:",                float(boostV) / 100,    "v")
+        print ("0x9008: floatV:",                float(floatV) / 100,    "v")
+        print ("0x9009: boostReconV:",           float(boostReconV) / 100,       "v")
+        print ("0x900A: loVRecon:",              float(loVRecon) / 100,  "v")
+        print ("0x900B: underVRecover:",         float(underVRecover) / 100,     "v")
+        print ("0x900C: underVWarn:",            float(underVWarn) / 100,        "v")
+        print ("0x90OD: loVDiscon:",             float(loVDiscon) / 100, "v")
+        print ("0x900E: dischargeLimitV:",       float(dischargeLimitV) / 100,   "v")
 else:
-        print "No data for 0x9000!"
+        print ("No data for 0x9000!")
 
 ###################################################################
 
@@ -293,12 +300,12 @@ if (result.registers):
                 batteryCurrentL += 640
 
         if (batteryCurrentH):
-                print "\nBattery is Discharging at %s Watts" % loadPowerL
+                print ("\nBattery is Discharging at %s Watts" % loadPowerL)
         else:
-                print "\nBattery is Charging in %s mode at %s Watts" % (chargeStatusStr, batteryChargePowerL)
+                print ("\nBattery is Charging in %s mode at %s Watts" % (chargeStatusStr, batteryChargePowerL))
 
 else:
-        print "No data for 0x331B!"
+        print ("No data for 0x331B!")
 
 ###################################################################
 
